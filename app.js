@@ -1,29 +1,43 @@
 var express = require("express")
 var app = express()
 var bodyParser = require("body-parser")
+var mongoose = require("mongoose")
 
-
+mongoose.connect("mongodb://localhost/yelp_camp", { useNewUrlParser: true })
 app.use(bodyParser.urlencoded({extended: true}))
 app.set("view engine", "ejs")
+
+
+// Schema setup
+var campgroundSchema = new mongoose.Schema({
+	name: String,
+	image: String,
+	description: String
+	  
+
+})
+var Campground = mongoose.model("Campground", campgroundSchema)
+
+
+
 
 app.get('/', function(req, res){
 	res.render("landing")
 })
 
-var campgrounds = [
-		{name: "Salmon Creek", image: "https://images.unsplash.com/photo-1496080174650-637e3f22fa03?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1306&q=80"},
-		{name: "Granite Hill", image: "https://images.unsplash.com/photo-1496080174650-637e3f22fa03?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1306&q=80"},
-		{name: "Mountain Goa's Rest", image: "https://images.unsplash.com/photo-1496080174650-637e3f22fa03?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1306&q=80"},
-		{name: "Salmon Creek", image: "https://images.unsplash.com/photo-1496080174650-637e3f22fa03?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1306&q=80"},
-		{name: "Granite Hill", image: "https://images.unsplash.com/photo-1496080174650-637e3f22fa03?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1306&q=80"},
-		{name: "Mountain Goa's Rest", image: "https://images.unsplash.com/photo-1496080174650-637e3f22fa03?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1306&q=80"}
 
-	]
 
 app.get('/campgrounds', function(req, res){
 	
-
-	res.render("campgrounds", {campgrounds: campgrounds});
+	Campground.find({}, function(err, allCampgrounds){
+		if(err){
+			console.log('Smth went wrong!')
+			console.log(err)
+		} else {
+				res.render("index", {campgrounds: allCampgrounds});
+			}
+	})
+	 
 })
  
 app.post("/campgrounds", function(req, res){
@@ -31,15 +45,42 @@ app.post("/campgrounds", function(req, res){
 	//get data from form and add to camp array
 	var name = req.body.name
 	var image = req.body.image
-	var newCampground = {name: name, image: image}
-	campgrounds.push(newCampground)
-	//redirect back to camp page
+	var description = req.body.description
+	var newCampground = {name: name, image: image, description: description}
+	// create new camp and save to db
 
-	res.redirect("/campgrounds")
+	Campground.create(newCampground, function(err, newlyCreated){
+		if(err){
+			console.log(err)
+		} else {
+			//redirect back to camp page
+			res.redirect("/campgrounds")
+		}
+	})
+
 })
+
 
 app.get("/campgrounds/new", function(req, res){
 	res.render("new")
+})
+
+
+// SHOW - shows more info about one camp
+
+app.get("/campgrounds/:id", function(req, res){
+	//find the campground with proveded id
+	Campground.findById(req.params.id, function(err, foundCampground){
+		if (err) {
+			console.log(err)
+		} else {
+			// render shoq template 
+			res.render("show", {campground: foundCampground})
+		}
+	})
+	
+	// render show template with that campground
+
 })
 
 app.listen(3000, function () {
